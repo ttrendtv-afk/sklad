@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Склад{% endblock %}
+{% block content %}
+<form method="GET" class="search-bar">
+  <input type="text" name="search" placeholder="🔍 Поиск по модели, IMEI, цвету..." value="{{ search }}">
+  <select name="brand" onchange="this.form.submit()">
+    <option value="">Все бренды</option>
+    {% for b in brands %}
+    <option {% if b==sel_brand %}selected{% endif %}>{{ b }}</option>
+    {% endfor %}
+  </select>
+  <select name="status" onchange="this.form.submit()">
+    <option value="">Все статусы</option>
+    <option {% if sel_status=='на складе' %}selected{% endif %} value="на складе">На складе</option>
+    <option {% if sel_status=='продан' %}selected{% endif %} value="продан">Продан</option>
+  </select>
+  <button class="btn btn-ac btn-sm" type="submit">Найти</button>
+  <a href="{{ url_for('stock') }}" class="btn btn-sm" style="background:var(--s2);color:var(--mu);border:1px solid var(--b);">Сброс</a>
+</form>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Модель</th><th>IMEI</th><th>Цвет / Память</th><th>Состояние</th>
+        <th>Закупка</th><th>Цена продажи</th><th>Статус</th><th>Действие</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% if phones %}
+    {% for p in phones %}
+    <tr>
+      <td><b>{{ p.brand }}</b> {{ p.model }}<br><span style="font-size:10px;color:var(--mu)">{{ p.added_date }}</span></td>
+      <td style="color:var(--mu);font-size:11px">{{ p.imei or '—' }}</td>
+      <td style="font-size:11px">{{ p.color or '—' }}{% if p.storage %} / {{ p.storage }}GB{% endif %}</td>
+      <td><span class="badge b-cy">{{ p.condition }}</span></td>
+      <td style="color:var(--ac2)">{{ "{:,.0f}".format(p.cost_price) }} ₽</td>
+      <td>
+        {% if p.status == 'продан' %}
+        <span class="profit-pos">{{ "{:,.0f}".format(p.sold_price or 0) }} ₽</span>
+        {% else %}
+        {{ "{:,.0f}".format(p.sell_price) }} ₽
+        {% endif %}
+      </td>
+      <td>
+        {% if p.status == 'на складе' %}
+        <span class="badge b-gr">На складе</span>
+        {% else %}
+        <span class="badge b-rd">Продан</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if p.status == 'на складе' %}
+        <a href="{{ url_for('sell_phone', phone_id=p.id) }}" class="btn btn-gr btn-sm">Продать</a>
+        {% else %}
+        <span style="font-size:10px;color:var(--mu)">{{ p.sold_date }}<br>{{ p.buyer or '' }}</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    {% else %}
+    <tr><td colspan="8" class="empty">Ничего не найдено</td></tr>
+    {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

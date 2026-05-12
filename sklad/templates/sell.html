@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Продать{% endblock %}
+{% block content %}
+<div class="card" style="max-width:480px">
+  <h2>💸 Продать телефон</h2>
+  <div style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:14px;margin-bottom:20px;font-size:13px;">
+    <b>{{ phone.brand }} {{ phone.model }}</b>
+    {% if phone.imei %}<br><span style="color:var(--mu)">IMEI: {{ phone.imei }}</span>{% endif %}
+    <br>Закупка: <span style="color:var(--ac2)">{{ "{:,.0f}".format(phone.cost_price) }} ₽</span>
+    &nbsp;|&nbsp; Рекомендованная цена: <span style="color:var(--ac)"><b>{{ "{:,.0f}".format(phone.sell_price) }} ₽</b></span>
+  </div>
+  <form method="POST">
+    <div style="margin-bottom:14px;">
+      <label>Цена продажи (₽) *</label>
+      <input type="number" name="sold_price" value="{{ phone.sell_price }}" required step="0.01">
+    </div>
+    <div style="margin-bottom:14px;">
+      <label>Покупатель</label>
+      <input type="text" name="buyer" placeholder="Имя или контакт">
+    </div>
+    <div style="margin-bottom:20px;">
+      <label>Дата продажи</label>
+      <input type="date" name="sold_date" value="{{ today }}">
+    </div>
+    <div style="display:flex;gap:12px;">
+      <button class="btn btn-gr" type="submit">Продать</button>
+      <a href="{{ url_for('stock') }}" class="btn btn-rd">Отмена</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}История{% endblock %}
+{% block content %}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Дата</th><th>Операция</th><th>Модель</th><th>IMEI</th><th>Сумма</th><th>Прибыль</th><th>Контрагент</th><th>Сотрудник</th></tr>
+    </thead>
+    <tbody>
+    {% if logs %}
+    {% for l in logs %}
+    <tr>
+      <td style="font-size:11px;color:var(--mu)">{{ l.date }}</td>
+      <td>
+        {% if l.operation == 'продажа' %}
+        <span class="badge b-rd">Продажа</span>
+        {% else %}
+        <span class="badge b-cy">Приход</span>
+        {% endif %}
+      </td>
+      <td>{{ l.model_name }}</td>
+      <td style="font-size:11px;color:var(--mu)">{{ l.imei or '—' }}</td>
+      <td>{{ "{:,.0f}".format(l.sum) }} ₽</td>
+      <td>
+        {% if l.profit is not none %}
+        <span class="{{ 'profit-pos' if l.profit >= 0 else 'profit-neg' }}">
+          {{ '+' if l.profit >= 0 else '' }}{{ "{:,.0f}".format(l.profit) }} ₽
+        </span>
+        {% else %}—{% endif %}
+      </td>
+      <td style="font-size:11px;color:var(--mu)">{{ l.buyer or '—' }}</td>
+      <td style="font-size:11px;color:var(--mu)">{{ users.get(l.user_id, '—') }}</td>
+    </tr>
+    {% endfor %}
+    {% else %}
+    <tr><td colspan="8" class="empty">История пуста</td></tr>
+    {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

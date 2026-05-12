@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Отчёты{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+  <div class="card">
+    <h2>💰 Финансы</h2>
+    {% for label, val, cls in [
+      ('Выручка от продаж', "{:,.0f}".format(stats.revenue)+' ₽', 'cy'),
+      ('Чистая прибыль', "{:,.0f}".format(stats.profit)+' ₽', 'gr' if stats.profit >= 0 else 'rd'),
+      ('Стоимость склада', "{:,.0f}".format(stats.stock_value)+' ₽', 'yw'),
+      ('Телефонов продано', stats.sold|string+' шт', 'ac2'),
+      ('Телефонов на складе', stats.in_stock|string+' шт', 'cy'),
+    ] %}
+    <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--b);font-size:12px;">
+      <span>{{ label }}</span>
+      <span style="font-weight:600" class="{{ cls }}">{{ val }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <h2>📊 Топ продаж по брендам</h2>
+    {% if brand_sales %}
+    {% for b, cnt in brand_sales %}
+    <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--b);font-size:12px;">
+      <span>{{ b }}</span><span style="font-weight:600;color:var(--ac)">{{ cnt }} шт</span>
+    </div>
+    {% endfor %}
+    {% else %}<div style="color:var(--mu);font-size:12px;padding:10px 0">Нет данных</div>{% endif %}
+  </div>
+
+  <div class="card">
+    <h2>📦 Остатки по брендам</h2>
+    {% if brand_stock %}
+    {% for b, cnt in brand_stock %}
+    <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--b);font-size:12px;">
+      <span>{{ b }}</span><span style="font-weight:600;color:var(--yw)">{{ cnt }} шт</span>
+    </div>
+    {% endfor %}
+    {% else %}<div style="color:var(--mu);font-size:12px;padding:10px 0">Склад пуст</div>{% endif %}
+  </div>
+
+  <div class="card">
+    <h2>🏆 Топ моделей по прибыли</h2>
+    {% if top_models %}
+    {% for brand, model, cnt, profit in top_models %}
+    <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--b);font-size:12px;">
+      <span>{{ brand }} {{ model }} <span style="color:var(--mu);font-size:10px">({{ cnt }}шт)</span></span>
+      <span style="font-weight:600;color:var(--gr)">+{{ "{:,.0f}".format(profit) }} ₽</span>
+    </div>
+    {% endfor %}
+    {% else %}<div style="color:var(--mu);font-size:12px;padding:10px 0">Нет данных</div>{% endif %}
+  </div>
+
+</div>
+{% endblock %}
