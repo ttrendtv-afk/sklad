@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% block title %}Отчёты — WMS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h2>Отчёты</h2>
+  <div class="topbar-right">
+    <a href="{{ url_for('reports_export', tab=tab, store=sel_store, model=sel_model, date_from=date_from, date_to=date_to, state=sel_state) }}" class="btn btn-primary btn-sm">Экспорт CSV</a>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- TABS -->
+  <div class="tabs">
+    {% for t, label in [('sales','Продажи'),('stock','Остаток'),('returns','Возвраты'),('finance','Финансы')] %}
+    <a href="{{ url_for('reports', tab=t, store=sel_store, model=sel_model, date_from=date_from, date_to=date_to, state=sel_state) }}"
+       class="tab-btn {% if tab==t %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  <!-- FILTERS -->
+  <form method="GET" class="filter-bar">
+    <input type="hidden" name="tab" value="{{ tab }}">
+    <input type="text" name="imei" placeholder="Поиск IMEI" value="{{ sel_imei }}" style="min-width:160px;">
+    <select name="store">
+      <option value="">Все магазины</option>
+      {% for s in stores %}<option value="{{ s.id }}" {% if sel_store==s.id|string %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+    </select>
+    <select name="model">
+      <option value="">Все модели</option>
+      {% for m in models %}<option value="{{ m.id }}" {% if sel_model==m.id|string %}selected{% endif %}>{{ m.name }}</option>{% endfor %}
+    </select>
+    <input type="text" name="date_from" placeholder="Дата от (ГГГГ-ММ-ДД)" value="{{ date_from }}" style="min-width:160px;">
+    <input type="text" name="date_to" placeholder="Дата до (ГГГГ-ММ-ДД)" value="{{ date_to }}" style="min-width:160px;">
+    <select name="state">
+      <option value="">Состояние: все</option>
+      <option {% if sel_state=='НОВАЯ' %}selected{% endif %}>НОВАЯ</option>
+      <option {% if sel_state=='REF.' %}selected{% endif %}>REF.</option>
+      <option {% if sel_state=='Б/У' %}selected{% endif %}>Б/У</option>
+    </select>
+    <div class="filter-actions">
+      <button type="submit" class="btn btn-primary btn-sm">Применить</button>
+      <a href="{{ url_for('reports', tab=tab) }}" class="btn btn-outline btn-sm">Сброс</a>
+    </div>
+  </form>
+
+  <!-- STATS -->
+  {% if tab == 'finance' %}
+  {% set total_price = phones | sum(attribute='price_gel') %}
+  {% set total_cost_gel = phones | sum(attribute='cost_usd') %}
+  <div class="stats-row">
+    <div class="stat-box"><div class="lbl">Позиций</div><div class="val blue">{{ phones|length }}</div></div>
+    <div class="stat-box"><div class="lbl">Выручка ₾</div><div class="val green">{{ "%.2f"|format(total_price) }}</div></div>
+    <div class="stat-box"><div class="lbl">Прибыль ₾</div>
+      <div class="val {% if (total_price - total_cost_gel * gel_rate) >= 0 %}green{% else %}orange{% endif %}">
+        {{ "%.2f"|format(total_price - total_cost_gel * gel_rate) }}
+      </div>
+    </div>
+  </div>
+
+  <!-- BULK MARKUP -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-body">
+      <form method="POST" action="/bulk-markup" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+        <input type="hidden" name="store" value="{{ sel_store }}">
+        <input type="hidden" name="model" value="{{ sel_model }}">
+        <input type="hidden" name="state" value="{{ sel_state }}">
+        <div>
+          <label>Массовая наценка %</label>
+          <input type="number" name="markup" value="20" step="0.1" style="width:100px;">
+        </div>
+        <div>
+          <label>Курс GEL</label>
+          <input type="number" name="gel_rate" value="{{ gel_rate }}" step="0.01" style="width:100px;">
+        </div>
+        <button type="submit" class="btn btn-success">Применить к выборке</button>
+      </form>
+    </div>
+  </div>
+  {% elif tab == 'sales' %}
+  {% set total_price = phones | sum(attribute='price_gel') %}
+  <div class="stats-row">
+    <div class="stat-box"><div class="lbl">Продано</div><div class="val blue">{{ phones|length }}</div></div>
+    <div class="stat-box"><div class="lbl">Выручка ₾</div><div class="val green">{{ "%.2f"|format(total_price) }}</div></div>
+  </div>
+  {% elif tab == 'stock' %}
+  <div class="stats-row">
+    <div class="stat-box"><div class="lbl">Остаток шт</div><div class="val blue">{{ phones|length }}</div></div>
+  </div>
+  {% elif tab == 'returns' %}
+  <div class="stats-row">
+    <div class="stat-box"><div class="lbl">Возвратов</div><div class="val orange">{{ phones|length }}</div></div>
+  </div>
+  {% endif %}
+
+  <!-- TABLE -->
+  <div class="card">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Модель</th>
+            <th>IMEI</th>
+            <th>Магазин</th>
+            <th>Состояние</th>
+            {% if tab == 'finance' %}
+            <th>Себест. $</th>
+            <th>Наценка %</th>
+            <th>Курс</th>
+            <th>Цена ₾</th>
+            <th>Прибыль ₾</th>
+            {% elif tab == 'sales' %}
+            <th>Дата приёма</th>
+            <th>Дата продажи</th>
+            <th>Цена ₾</th>
+            <th>Прибыль ₾</th>
+            {% elif tab == 'stock' %}
+            <th>Дата приёма</th>
+            <th>Цена ₾</th>
+            {% elif tab == 'returns' %}
+            <th>Дата продажи</th>
+            <th>Дата возврата</th>
+            <th>Цена ₾</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+        {% if phones %}
+        {% for p in phones %}
+        {% set profit = (p.price_gel - p.cost_usd * p.gel_rate) if p.price_gel and p.cost_usd else 0 %}
+        <tr>
+          <td>{{ p.model.name }}</td>
+          <td><a href="#" class="imei-link" onclick="openModal('{{ p.imei }}'); return false;">{{ p.imei }}</a></td>
+          <td>{{ p.store.name }}</td>
+          <td>
+            {% if p.state=='НОВАЯ' %}<span class="badge badge-new">НОВАЯ</span>
+            {% elif p.state=='REF.' %}<span class="badge badge-ref">REF.</span>
+            {% else %}<span class="badge badge-bu">Б/У</span>{% endif %}
+          </td>
+          {% if tab == 'finance' %}
+          <td style="font-family:'IBM Plex Mono',monospace;">{{ "%.2f"|format(p.cost_usd or 0) }}</td>
+          <td>{{ p.markup_pct or 0 }}%</td>
+          <td>{{ p.gel_rate or gel_rate }}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;font-weight:600;">{{ "%.2f"|format(p.price_gel or 0) }}</td>
+          <td class="{{ 'profit-pos' if profit >= 0 else 'profit-neg' }}" style="font-family:'IBM Plex Mono',monospace;">{{ "%.2f"|format(profit) }}</td>
+          {% elif tab == 'sales' %}
+          <td style="color:#9a9a9a;">{{ p.date_in or '—' }}</td>
+          <td style="color:#9a9a9a;">{{ p.date_sold or '—' }}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;">{{ "%.2f"|format(p.price_gel or 0) }}</td>
+          <td class="{{ 'profit-pos' if profit >= 0 else 'profit-neg' }}" style="font-family:'IBM Plex Mono',monospace;">{{ "%.2f"|format(profit) }}</td>
+          {% elif tab == 'stock' %}
+          <td style="color:#9a9a9a;">{{ p.date_in or '—' }}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;">{{ "%.2f"|format(p.price_gel or 0) }}</td>
+          {% elif tab == 'returns' %}
+          <td style="color:#9a9a9a;">{{ p.date_sold or '—' }}</td>
+          <td style="color:#9a9a9a;">{{ p.date_returned or '—' }}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;">{{ "%.2f"|format(p.price_gel or 0) }}</td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr><td colspan="10" style="text-align:center;padding:40px;color:#9a9a9a;">Нет данных</td></tr>
+        {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}WMS{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f4f0;--white:#ffffff;--dark:#1a1a1a;--mid:#5a5a5a;--light:#9a9a9a;
+  --border:#e0ddd6;--accent:#2563eb;--accent-h:#1d4ed8;
+  --green:#16a34a;--red:#dc2626;--orange:#ea580c;--yellow:#ca8a04;
+  --sidebar-w:220px;
+  --font:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--dark);font-family:var(--font);min-height:100vh;display:flex;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);background:var(--dark);min-height:100vh;display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100;}
+.sidebar-brand{padding:20px 18px 16px;border-bottom:1px solid #333;}
+.sidebar-brand h1{font-family:var(--mono);font-size:13px;color:#fff;letter-spacing:2px;text-transform:uppercase;}
+.sidebar-brand span{color:#60a5fa;}
+.sidebar-ver{font-size:10px;color:#555;margin-top:3px;}
+nav{padding:12px 0;flex:1;}
+.nav-item{display:block;padding:10px 18px;color:#aaa;font-size:13px;font-weight:500;text-decoration:none;transition:.15s;border-left:3px solid transparent;}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,.05);}
+.nav-item.active{color:#fff;border-left-color:#60a5fa;background:rgba(96,165,250,.08);}
+.nav-item svg{width:15px;height:15px;margin-right:8px;vertical-align:-2px;opacity:.7;}
+.sidebar-user{padding:14px 18px;border-top:1px solid #333;font-size:11px;color:#555;}
+.sidebar-user strong{color:#aaa;display:block;margin-bottom:4px;}
+.sidebar-user a{color:#555;font-size:11px;}
+.sidebar-user a:hover{color:#aaa;}
+
+/* MAIN */
+.main{margin-left:var(--sidebar-w);flex:1;padding:0;min-height:100vh;}
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;}
+.topbar h2{font-size:16px;font-weight:700;color:var(--dark);}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.content{padding:24px 28px;}
+
+/* CARDS */
+.card{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-header h3{font-size:13px;font-weight:600;color:var(--mid);}
+.card-body{padding:18px;}
+
+/* FLASH */
+.flash-wrap{padding:0 28px;margin-top:16px;}
+.flash{padding:10px 14px;border-radius:7px;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.flash.success{background:#f0fdf4;border:1px solid #86efac;color:var(--green);}
+.flash.error{background:#fef2f2;border:1px solid #fca5a5;color:var(--red);}
+
+/* FORMS */
+label{font-size:11px;font-weight:600;color:var(--mid);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--dark);font-family:var(--font);font-size:13px;padding:9px 12px;outline:none;transition:.15s;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);background:#fff;}
+.form-row{display:grid;gap:14px;}
+.form-row.cols-2{grid-template-columns:1fr 1fr;}
+.form-row.cols-3{grid-template-columns:1fr 1fr 1fr;}
+.form-row.cols-4{grid-template-columns:repeat(4,1fr);}
+.form-group{display:flex;flex-direction:column;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:none;border-radius:7px;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;transition:.15s;text-decoration:none;white-space:nowrap;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent-h);}
+.btn-success{background:var(--green);color:#fff;}
+.btn-success:hover{background:#15803d;}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-danger:hover{background:#b91c1c;}
+.btn-outline{background:#fff;color:var(--dark);border:1px solid var(--border);}
+.btn-outline:hover{background:var(--bg);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead{background:var(--bg);}
+th{padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#fafaf8;}
+.imei-link{font-family:var(--mono);font-size:12px;color:var(--accent);cursor:pointer;text-decoration:none;}
+.imei-link:hover{text-decoration:underline;}
+
+/* BADGES */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;}
+.badge-new{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;}
+.badge-ref{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;}
+.badge-bu{background:#f5f5f4;color:#57534e;border:1px solid #d6d3d1;}
+.badge-sold{background:#fef2f2;color:var(--red);border:1px solid #fca5a5;}
+.badge-stock{background:#f0fdf4;color:var(--green);border:1px solid #86efac;}
+.badge-ret{background:#fefce8;color:var(--yellow);border:1px solid #fde047;}
+
+/* FILTER BAR */
+.filter-bar{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+.filter-bar input,.filter-bar select{width:auto;min-width:150px;font-size:12px;padding:7px 10px;}
+.filter-bar .filter-actions{margin-left:auto;display:flex;gap:8px;}
+
+/* STATS ROW */
+.stats-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.stat-box{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;min-width:140px;}
+.stat-box .lbl{font-size:11px;color:var(--light);text-transform:uppercase;letter-spacing:.5px;}
+.stat-box .val{font-family:var(--mono);font-size:20px;font-weight:600;margin-top:4px;}
+.stat-box .val.blue{color:var(--accent);}
+.stat-box .val.green{color:var(--green);}
+.stat-box .val.orange{color:var(--orange);}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:12px;padding:28px;width:580px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.modal-header h2{font-size:15px;font-weight:700;}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--light);padding:4px;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.tab-btn{padding:10px 18px;border:none;background:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:500;color:var(--mid);border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-btn:hover:not(.active){color:var(--dark);}
+
+/* GROUP ROW */
+.group-row{background:#fafaf8;font-weight:600;font-size:12px;}
+.group-row td{padding:8px 14px;border-bottom:1px solid var(--border);}
+
+/* PROFIT */
+.profit-pos{color:var(--green);font-weight:600;}
+.profit-neg{color:var(--red);font-weight:600;}
+
+@media(max-width:768px){
+  .sidebar{width:0;overflow:hidden;}
+  .main{margin-left:0;}
+  .form-row.cols-2,.form-row.cols-3,.form-row.cols-4{grid-template-columns:1fr;}
+}
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <h1>WMS <span>Склад</span></h1>
+    <div class="sidebar-ver">v2.0</div>
+  </div>
+  <nav>
+    <a href="{{ url_for('catalog') }}" class="nav-item {% if request.endpoint=='catalog' %}active{% endif %}">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+      Общий товар
+    </a>
+    <a href="{{ url_for('add_phone') }}" class="nav-item {% if request.endpoint=='add_phone' %}active{% endif %}">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Добавить товар
+    </a>
+    <a href="{{ url_for('reports') }}" class="nav-item {% if request.endpoint=='reports' %}active{% endif %}">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      Отчёты
+    </a>
+    {% if session.role == 'admin' %}
+    <a href="{{ url_for('references') }}" class="nav-item {% if request.endpoint=='references' %}active{% endif %}">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Справочники / Бэкап
+    </a>
+    {% endif %}
+  </nav>
+  <div class="sidebar-user">
+    <strong>{{ session.name }}</strong>
+    <a href="{{ url_for('logout') }}">Выйти</a>
+  </div>
+</aside>
+
+<div class="main">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-wrap">
+  {% for cat, msg in messages %}
+  <div class="flash {{ cat }}">{{ msg }}</div>
+  {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+<!-- PHONE DETAIL MODAL -->
+<div class="modal-overlay" id="phoneModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Карточка товара</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <form id="modalForm" method="POST">
+      <div class="form-row cols-2" style="margin-bottom:14px;">
+        <div class="form-group">
+          <label>Модель</label>
+          <input type="text" id="mModel" readonly style="background:#f5f4f0;">
+        </div>
+        <div class="form-group">
+          <label>Магазин</label>
+          <select name="store_id" id="mStore"></select>
+        </div>
+      </div>
+      <div class="form-row cols-2" style="margin-bottom:14px;">
+        <div class="form-group">
+          <label>Состояние</label>
+          <select name="state" id="mState">
+            <option>НОВАЯ</option><option>REF.</option><option>Б/У</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Себестоимость $</label>
+          <input type="number" name="cost_usd" id="mCost" step="0.01" oninput="calcPrice()">
+        </div>
+      </div>
+      <div class="form-row cols-3" style="margin-bottom:14px;">
+        <div class="form-group">
+          <label>Наценка %</label>
+          <input type="number" name="markup_pct" id="mMarkup" step="0.1" oninput="calcPrice()">
+        </div>
+        <div class="form-group">
+          <label>Курс GEL</label>
+          <input type="number" name="gel_rate" id="mRate" step="0.01" oninput="calcPrice()">
+        </div>
+        <div class="form-group">
+          <label>Цена / Прибыль</label>
+          <input type="number" name="price_gel" id="mPrice" step="0.01" style="border-color:#86efac;">
+        </div>
+      </div>
+      <div class="form-row cols-3" style="margin-bottom:14px;">
+        <div class="form-group">
+          <label>Дата приёма</label>
+          <input type="date" name="date_in" id="mDateIn">
+        </div>
+        <div class="form-group">
+          <label>Дата продажи</label>
+          <input type="date" name="date_sold" id="mDateSold">
+        </div>
+        <div class="form-group">
+          <label>Дата возврата</label>
+          <input type="date" name="date_returned" id="mDateRet">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:4px;">
+        <label>Заметки</label>
+        <textarea name="notes" id="mNotes" rows="2" style="resize:vertical;"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-success">Сохранить</button>
+        <button type="button" id="mDeleteBtn" class="btn btn-danger" onclick="deletePhone()">Удалить товар</button>
+        <button type="button" class="btn btn-outline" onclick="closeModal()">Закрыть</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+let currentImei = null;
+let deleteUrl = null;
+
+function openModal(imei) {
+  currentImei = imei;
+  fetch('/api/phone/' + imei)
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('modalTitle').textContent = 'Карточка товара — IMEI ' + d.imei;
+      document.getElementById('mModel').value = d.model;
+      document.getElementById('mCost').value = d.cost_usd;
+      document.getElementById('mMarkup').value = d.markup_pct;
+      document.getElementById('mRate').value = d.gel_rate;
+      document.getElementById('mPrice').value = d.price_gel;
+      document.getElementById('mDateIn').value = d.date_in;
+      document.getElementById('mDateSold').value = d.date_sold;
+      document.getElementById('mDateRet').value = d.date_returned;
+      document.getElementById('mNotes').value = d.notes;
+
+      const stateEl = document.getElementById('mState');
+      stateEl.value = d.state;
+
+      const storeEl = document.getElementById('mStore');
+      storeEl.innerHTML = d.stores.map(s => `<option value="${s.id}" ${s.id==d.store_id?'selected':''}>${s.name}</option>`).join('');
+
+      document.getElementById('modalForm').action = '/phone/' + imei + '/edit';
+      deleteUrl = '/phone/' + imei + '/delete';
+
+      // Show profit
+      updateProfitDisplay(d.price_gel, d.cost_usd, d.gel_rate);
+
+      document.getElementById('phoneModal').classList.add('open');
+    });
+}
+
+function updateProfitDisplay(price, cost, rate) {
+  const profit = price && cost ? (price - cost * rate).toFixed(2) : '—';
+  document.getElementById('mPrice').title = 'Прибыль: ₾' + profit;
+}
+
+function calcPrice() {
+  const cost = parseFloat(document.getElementById('mCost').value) || 0;
+  const markup = parseFloat(document.getElementById('mMarkup').value) || 0;
+  const rate = parseFloat(document.getElementById('mRate').value) || 0;
+  if (cost && rate) {
+    const price = (cost * (1 + markup / 100) * rate).toFixed(2);
+    document.getElementById('mPrice').value = price;
+    updateProfitDisplay(parseFloat(price), cost, rate);
+  }
+}
+
+function closeModal() {
+  document.getElementById('phoneModal').classList.remove('open');
+}
+
+function deletePhone() {
+  if (!confirm('Удалить товар?')) return;
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = deleteUrl;
+  document.body.appendChild(form);
+  form.submit();
+}
+
+document.getElementById('phoneModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>
