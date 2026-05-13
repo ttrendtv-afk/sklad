@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% block title %}Отчёты — WMS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h2>Отчёты</h2>
+  <div class="topbar-right">
+    <button class="btn btn-primary btn-sm" onclick="exportReport()">Экспорт CSV</button>
+  </div>
+</div>
+
+<div class="content">
+  <div class="tabs">
+    <button class="tab-btn {% if tab=='stock' %}active{% endif %}" onclick="switchTab('stock')">Остаток</button>
+    <button class="tab-btn {% if tab=='sales' %}active{% endif %}" onclick="switchTab('sales')">Продажи</button>
+    <button class="tab-btn {% if tab=='returns' %}active{% endif %}" onclick="switchTab('returns')">Возвраты</button>
+    {% if can_finance %}
+    <button class="tab-btn {% if tab=='finance' %}active{% endif %}" onclick="switchTab('finance')">Финансы</button>
+    {% endif %}
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filter-bar">
+    <input type="text" id="fImei" placeholder="Поиск IMEI" value="{{ sel_imei }}" oninput="loadReport()">
+    <select id="fStore" onchange="loadReport()">
+      <option value="">Все магазины</option>
+      {% for s in stores %}<option value="{{ s.id }}" {% if sel_store==s.id|string %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+    </select>
+    <select id="fModel" onchange="loadReport()">
+      <option value="">Все модели</option>
+      {% for m in models %}<option value="{{ m.id }}" {% if sel_model==m.id|string %}selected{% endif %}>{{ m.name }}</option>{% endfor %}
+    </select>
+    <select id="fState" onchange="loadReport()">
+      <option value="">Состояние: все</option>
+      <option {% if sel_state=='НОВАЯ' %}selected{% endif %}>НОВАЯ</option>
+      <option {% if sel_state=='REF.' %}selected{% endif %}>REF.</option>
+      <option {% if sel_state=='Б/У' %}selected{% endif %}>Б/У</option>
+    </select>
+    <input type="date" id="fDateFrom" value="{{ date_from }}" onchange="loadReport()" placeholder="Дата от">
+    <input type="date" id="fDateTo" value="{{ date_to }}" onchange="loadReport()" placeholder="Дата до">
+    <div class="filter-actions">
+      <button class="btn btn-outline btn-sm" onclick="resetFilters()">Сброс</button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row" id="statsRow"></div>
+
+  {% if can_finance %}
+  <!-- BULK MARKUP (finance tab only) -->
+  <div id="bulkMarkupBlock" style="display:none;margin-bottom:14px;">
+    <div class="card">
+      <div class="card-body">
+        <form method="POST" action="/bulk-markup" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;" id="bulkForm">
+          <input type="hidden" name="store" id="bmStore">
+          <input type="hidden" name="model" id="bmModel">
+          <input type="hidden" name="state" id="bmState">
+          <div class="form-group"><label>Массовая наценка %</label>
+            <input type="number" name="markup" value="20" step="0.1" style="width:100px;"></div>
+          <div class="form-group"><label>Курс GEL</label>
+            <input type="number" name="gel_rate" value="{{ gel_rate }}" step="0.01" style="width:90px;"></div>
+          <button type="submit" class="btn btn-success">Применить к выборке</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- TABLE -->
+  <div class="card">
+    <div class="tbl-wrap">
+      <table>
+        <thead id="reportHead"></thead>
+        <tbody id="reportBody">
+          <tr><td colspan="10" style="text-align:center;padding:30px;color:#9a9a9a;">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentTab = '{{ tab }}';
+const CAN_FINANCE = {{ 'true' if can_finance else 'false' }};
+let reportData = [];
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  if (CAN_FINANCE) {
+    document.getElementById('bulkMarkupBlock').style.display = tab === 'finance' ? '' : 'none';
+  }
+  loadReport();
+}
+
+function loadReport() {
+  const params = new URLSearchParams({
+    tab: currentTab,
+    imei: document.getElementById('fImei').value,
+    store: document.getElementById('fStore').value,
+    model: document.getElementById('fModel').value,
+    state: document.getElementById('fState').value,
+    date_from: document.getElementById('fDateFrom').value,
+    date_to: document.getElementById('fDateTo').value,
+  });
+
+  if (CAN_FINANCE) {
+    document.getElementById('bmStore').value = document.getElementById('fStore').value;
+    document.getElementById('bmModel').value = document.getElementById('fModel').value;
+    document.getElementById('bmState').value = document.getElementById('fState').value;
+  }
+
+  fetch('/api/reports?' + params)
+    .then(r => r.json())
+    .then(d => { reportData = d; renderReport(d); });
+}
+
+function renderReport(d) {
+  // Stats
+  const statsHtml = `
+    <div class="stat-box"><div class="lbl">Позиций</div><div class="val blue">${d.count}</div></div>
+    ${currentTab !== 'stock' && d.can_finance ? `
+    <div class="stat-box"><div class="lbl">Выручка ₾</div><div class="val green">${d.total_revenue.toFixed(2)}</div></div>
+    <div class="stat-box"><div class="lbl">Прибыль ₾</div><div class="val ${d.total_profit>=0?'green':'orange'}">${d.total_profit.toFixed(2)}</div></div>
+    ` : ''}
+  `;
+  document.getElementById('statsRow').innerHTML = statsHtml;
+
+  // Head
+  let cols = [];
+  if (currentTab === 'finance') {
+    cols = ['Модель','IMEI','Магазин','Состояние','Себест. $','Наценка %','Курс','Цена ₾','Цена продажи ₾','Прибыль ₾'];
+  } else if (currentTab === 'sales') {
+    cols = ['Модель','IMEI','Магазин','Состояние','Дата приёма','Дата продажи','Цена ₾','Прибыль ₾'];
+    if (!d.can_finance) cols = cols.filter(c => c !== 'Прибыль ₾');
+  } else if (currentTab === 'stock') {
+    cols = ['Модель','IMEI','Магазин','Состояние','Цена ₾','Дата приёма'];
+  } else if (currentTab === 'returns') {
+    cols = ['Модель','IMEI','Магазин','Состояние','Дата продажи','Дата возврата','Цена ₾'];
+  }
+  document.getElementById('reportHead').innerHTML = '<tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+
+  // Body
+  if (!d.phones.length) {
+    document.getElementById('reportBody').innerHTML = `<tr><td colspan="${cols.length}" style="text-align:center;padding:30px;color:#9a9a9a;">Нет данных</td></tr>`;
+    return;
+  }
+
+  document.getElementById('reportBody').innerHTML = d.phones.map(p => {
+    const badge = p.state==='НОВАЯ'?'badge-new':p.state==='REF.'?'badge-ref':'badge-bu';
+    const imeiLink = `<a href="#" class="imei-link" onclick="openModal('${p.imei}');return false;">${p.imei}</a>`;
+    const profitCls = (p.profit||0) >= 0 ? 'profit-pos' : 'profit-neg';
+    const eff = p.effective_price != null ? p.effective_price : p.price_gel;
+
+    if (currentTab === 'finance') {
+      return `<tr>
+        <td>${p.model}</td><td>${imeiLink}</td><td>${p.store}</td>
+        <td><span class="badge ${badge}">${p.state}</span></td>
+        <td style="font-family:'IBM Plex Mono',monospace;">${(p.cost_usd||0).toFixed(2)}</td>
+        <td>${p.markup_pct||0}%</td>
+        <td>${p.gel_rate||2.7}</td>
+        <td style="font-family:'IBM Plex Mono',monospace;">${(p.price_gel||0).toFixed(2)}</td>
+        <td style="font-family:'IBM Plex Mono',monospace;border-color:#fde047;">${eff!=null?(eff).toFixed(2):'—'}</td>
+        <td class="${profitCls}" style="font-family:'IBM Plex Mono',monospace;">${(p.profit||0).toFixed(2)}</td>
+      </tr>`;
+    } else if (currentTab === 'sales') {
+      return `<tr>
+        <td>${p.model}</td><td>${imeiLink}</td><td>${p.store}</td>
+        <td><span class="badge ${badge}">${p.state}</span></td>
+        <td style="color:#9a9a9a;">${p.date_in||'—'}</td>
+        <td style="color:#9a9a9a;">${p.date_sold||'—'}</td>
+        <td style="font-family:'IBM Plex Mono',monospace;">${(eff||0).toFixed(2)}</td>
+        ${d.can_finance ? `<td class="${profitCls}" style="font-family:'IBM Plex Mono',monospace;">${(p.profit||0).toFixed(2)}</td>` : ''}
+      </tr>`;
+    } else if (currentTab === 'stock') {
+      return `<tr>
+        <td>${p.model}</td><td>${imeiLink}</td><td>${p.store}</td>
+        <td><span class="badge ${badge}">${p.state}</span></td>
+        <td style="font-family:'IBM Plex Mono',monospace;">${(p.price_gel||0).toFixed(2)}</td>
+        <td style="color:#9a9a9a;">${p.date_in||'—'}</td>
+      </tr>`;
+    } else {
+      return `<tr>
+        <td>${p.model}</td><td>${imeiLink}</td><td>${p.store}</td>
+        <td><span class="badge ${badge}">${p.state}</span></td>
+        <td style="color:#9a9a9a;">${p.date_sold||'—'}</td>
+        <td style="color:#9a9a9a;">${p.date_returned||'—'}</td>
+        <td style="font-family:'IBM Plex Mono',monospace;">${(p.price_gel||0).toFixed(2)}</td>
+      </tr>`;
+    }
+  }).join('');
+}
+
+function resetFilters() {
+  ['fImei','fStore','fModel','fState','fDateFrom','fDateTo'].forEach(id => document.getElementById(id).value = '');
+  loadReport();
+}
+
+function exportReport() {
+  const params = new URLSearchParams({
+    tab: currentTab,
+    imei: document.getElementById('fImei').value,
+    store: document.getElementById('fStore').value,
+    model: document.getElementById('fModel').value,
+    state: document.getElementById('fState').value,
+    date_from: document.getElementById('fDateFrom').value,
+    date_to: document.getElementById('fDateTo').value,
+  });
+  window.location = '/reports/export?' + params;
+}
+
+// Init
+if (CAN_FINANCE && currentTab === 'finance') {
+  document.getElementById('bulkMarkupBlock').style.display = '';
+}
+loadReport();
+</script>
+{% endblock %}
