@@ -484,17 +484,23 @@ def reports_export():
     can_finance = session.get('role') in ('admin', 'manager')
 
     output = io.StringIO()
-    writer = csv.writer(output, delimiter=';')
+    writer = csv.writer(output, delimiter=',', quoting=csv.QUOTE_ALL)
     if can_finance:
         writer.writerow(['Модель','IMEI','Магазин','Состояние','Себестоимость $','Наценка %','Курс GEL','Цена GEL','Цена продажи GEL','Прибыль GEL','Дата приёма','Дата продажи','Дата возврата','Покупатель','Заметки'])
         for p in phones:
             eff = p.sold_price_gel if p.sold_price_gel is not None else p.price_gel
             profit = round((eff or 0) - (p.cost_usd or 0) * (p.gel_rate or gel_rate), 2)
-            writer.writerow([p.model.name, p.imei, p.store.name, p.state, p.cost_usd, p.markup_pct, p.gel_rate, p.price_gel, eff, profit, p.date_in, p.date_sold, p.date_returned, p.buyer, p.notes])
+            writer.writerow([p.model.name, p.imei, p.store.name, p.state,
+                             p.cost_usd or 0, p.markup_pct or 0, p.gel_rate or gel_rate,
+                             p.price_gel or 0, eff or 0, profit,
+                             str(p.date_in or ''), str(p.date_sold or ''),
+                             str(p.date_returned or ''), p.buyer or '', p.notes or ''])
     else:
         writer.writerow(['Модель','IMEI','Магазин','Состояние','Цена GEL','Дата приёма','Дата продажи','Заметки'])
         for p in phones:
-            writer.writerow([p.model.name, p.imei, p.store.name, p.state, p.price_gel, p.date_in, p.date_sold, p.notes])
+            writer.writerow([p.model.name, p.imei, p.store.name, p.state,
+                             p.price_gel or 0, str(p.date_in or ''),
+                             str(p.date_sold or ''), p.notes or ''])
 
     output.seek(0)
     return Response('\ufeff' + output.getvalue(), mimetype='text/csv; charset=utf-8',
@@ -549,9 +555,17 @@ def api_reports():
 
 # ─── BULK MARKUP ──────────────────────────────────────────────────────────────
 
+@app.route('/finance/bulk', methods=['POST'])
+@role_required('manager')
+def finance_bulk():
+    return bulk_markup_action()
+
 @app.route('/bulk-markup', methods=['POST'])
 @role_required('manager')
 def bulk_markup():
+    return bulk_markup_action()
+
+def bulk_markup_action():
     markup = float(request.form.get('markup', 20))
     gel_rate = float(request.form.get('gel_rate', 2.7))
     sel_store = request.form.get('store', '')
@@ -668,6 +682,7 @@ def delete_state(sid):
     return redirect(url_for('references'))
 
 
+@app.route('/references/user/add', methods=['POST'])
 @role_required('admin')
 def add_user():
     username = request.form['username'].strip()
@@ -702,7 +717,7 @@ def backup_export():
     phones = Phone.query.all()
     data = [phone_to_dict(p) for p in phones]
     for d in data:
-        del d['stores']
+        d.pop('stores', None)
     out = json.dumps({'phones': data,
                       'models': [m.name for m in PhoneModel.query.all()],
                       'stores': [s.name for s in Store.query.all()]},
@@ -767,16 +782,22 @@ def init_db():
             db.session.add(PhoneState(name=s, sort=i))
     if not PhoneModel.query.first():
         iphone_models = [
-            'iPhone 13 128GB', 'iPhone 13 256GB',
-            'iPhone 13 Pro 128GB', 'iPhone 13 Pro 256GB',
-            'iPhone 14 128GB', 'iPhone 14 256GB',
-            'iPhone 14 Pro 128GB', 'iPhone 14 Pro 256GB',
-            'iPhone 14 Pro Max 256GB', 'iPhone 14 Pro Max 512GB',
-            'iPhone 15 128GB', 'iPhone 15 256GB',
-            'iPhone 15 Pro 128GB', 'iPhone 15 Pro 256GB',
-            'iPhone 15 Pro 512GB', 'iPhone 15 Pro Max 256GB',
-            'iPhone 16 128GB', 'iPhone 16 256GB',
-            'iPhone 16 Pro 256GB', 'iPhone 16 Pro Max 256GB',
+            'iPhone 13 128GB', 'iPhone 13 256GB', 'iPhone 13 512GB',
+            'iPhone 13 Mini 128GB', 'iPhone 13 Mini 256GB',
+            'iPhone 13 Pro 128GB', 'iPhone 13 Pro 256GB', 'iPhone 13 Pro 512GB',
+            'iPhone 13 Pro Max 128GB', 'iPhone 13 Pro Max 256GB', 'iPhone 13 Pro Max 512GB',
+            'iPhone 14 128GB', 'iPhone 14 256GB', 'iPhone 14 512GB',
+            'iPhone 14 Plus 128GB', 'iPhone 14 Plus 256GB',
+            'iPhone 14 Pro 128GB', 'iPhone 14 Pro 256GB', 'iPhone 14 Pro 512GB', 'iPhone 14 Pro 1TB',
+            'iPhone 14 Pro Max 128GB', 'iPhone 14 Pro Max 256GB', 'iPhone 14 Pro Max 512GB', 'iPhone 14 Pro Max 1TB',
+            'iPhone 15 128GB', 'iPhone 15 256GB', 'iPhone 15 512GB',
+            'iPhone 15 Plus 128GB', 'iPhone 15 Plus 256GB',
+            'iPhone 15 Pro 128GB', 'iPhone 15 Pro 256GB', 'iPhone 15 Pro 512GB', 'iPhone 15 Pro 1TB',
+            'iPhone 15 Pro Max 256GB', 'iPhone 15 Pro Max 512GB', 'iPhone 15 Pro Max 1TB',
+            'iPhone 16 128GB', 'iPhone 16 256GB', 'iPhone 16 512GB',
+            'iPhone 16 Plus 128GB', 'iPhone 16 Plus 256GB', 'iPhone 16 Plus 512GB',
+            'iPhone 16 Pro 128GB', 'iPhone 16 Pro 256GB', 'iPhone 16 Pro 512GB', 'iPhone 16 Pro 1TB',
+            'iPhone 16 Pro Max 256GB', 'iPhone 16 Pro Max 512GB', 'iPhone 16 Pro Max 1TB',
         ]
         for name in iphone_models:
             db.session.add(PhoneModel(name=name))
