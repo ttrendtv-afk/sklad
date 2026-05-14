@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% block title %}Справочники — WMS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h2>Справочники / Бэкап</h2>
+  <div class="topbar-right">
+    <a href="{{ url_for('backup_export') }}" class="btn btn-primary btn-sm">Скачать JSON (бэкап)</a>
+  </div>
+</div>
+<div class="content">
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
+
+    <!-- MODELS -->
+    <div class="card">
+      <div class="card-header"><h3>Модели телефонов</h3></div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('add_model') }}" style="display:flex;gap:8px;margin-bottom:14px;">
+          <input type="text" name="name" placeholder="iPhone 16 Pro 256GB" required style="flex:1;">
+          <button type="submit" class="btn btn-success btn-sm">+</button>
+        </form>
+        <div style="max-height:380px;overflow-y:auto;">
+        {% for m in models %}
+        <div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #e0ddd6;">
+          <span style="flex:1;font-size:12px;">{{ m.name }}</span>
+          <button class="btn btn-outline btn-sm" onclick="editModel({{ m.id }}, this.dataset.name)" data-name="{{ m.name }}">✏️</button>
+          <form method="POST" action="{{ url_for('delete_model', mid=m.id) }}" onsubmit="return confirm('Удалить?')" style="margin:0;">
+            <button type="submit" class="btn btn-outline btn-sm" style="color:#dc2626;padding:4px 8px;">×</button>
+          </form>
+        </div>
+        {% else %}
+        <div style="color:#9a9a9a;font-size:12px;padding:10px 0;">Нет моделей</div>
+        {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- STORES -->
+    <div class="card">
+      <div class="card-header"><h3>Магазины / Склады</h3></div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('add_store') }}" style="display:flex;gap:8px;margin-bottom:14px;">
+          <input type="text" name="name" placeholder="МАГАЗИН 5" required style="flex:1;">
+          <button type="submit" class="btn btn-success btn-sm">+</button>
+        </form>
+        <div style="max-height:380px;overflow-y:auto;">
+        {% for s in stores %}
+        <div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #e0ddd6;">
+          <span style="flex:1;font-size:12px;">{{ s.name }}</span>
+          <form method="POST" action="{{ url_for('delete_store', sid=s.id) }}" onsubmit="return confirm('Удалить?')" style="margin:0;">
+            <button type="submit" class="btn btn-outline btn-sm" style="color:#dc2626;padding:4px 8px;">×</button>
+          </form>
+        </div>
+        {% else %}
+        <div style="color:#9a9a9a;font-size:12px;padding:10px 0;">Нет магазинов</div>
+        {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- STATES -->
+    <div class="card">
+      <div class="card-header"><h3>Состояния телефонов</h3></div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('add_state') }}" style="display:flex;gap:8px;margin-bottom:14px;">
+          <input type="text" name="name" placeholder="НОВАЯ, REF., Б/У..." required style="flex:1;">
+          <button type="submit" class="btn btn-success btn-sm">+</button>
+        </form>
+        <div style="max-height:380px;overflow-y:auto;">
+        {% for st in states %}
+        <div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #e0ddd6;">
+          <span style="flex:1;font-size:12px;">{{ st.name }}</span>
+          <form method="POST" action="{{ url_for('delete_state', sid=st.id) }}" onsubmit="return confirm('Удалить?')" style="margin:0;">
+            <button type="submit" class="btn btn-outline btn-sm" style="color:#dc2626;padding:4px 8px;">×</button>
+          </form>
+        </div>
+        {% else %}
+        <div style="color:#9a9a9a;font-size:12px;padding:10px 0;">Нет состояний</div>
+        {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <!-- USERS -->
+    <div class="card">
+      <div class="card-header"><h3>Сотрудники</h3></div>
+      <div class="card-body">
+        {% for u in users %}
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #e0ddd6;">
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;">{{ u.name or u.username }}</div>
+            <div style="font-size:11px;color:#9a9a9a;">{{ u.username }} ·
+              {% if u.role=='admin' %}<span style="color:#2563eb;">Администратор</span>
+              {% elif u.role=='manager' %}<span style="color:#16a34a;">Менеджер</span>
+              {% else %}<span style="color:#9a9a9a;">Сотрудник</span>{% endif %}
+            </div>
+          </div>
+          {% if u.id != session.user_id %}
+          <form method="POST" action="{{ url_for('delete_user', uid=u.id) }}" onsubmit="return confirm('Удалить?')" style="margin:0;">
+            <button type="submit" class="btn btn-outline btn-sm" style="color:#dc2626;">×</button>
+          </form>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>Добавить сотрудника</h3></div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('add_user') }}">
+          <div class="form-row cols-2" style="margin-bottom:10px;">
+            <div class="form-group"><label>Имя</label><input type="text" name="name" placeholder="Иван"></div>
+            <div class="form-group"><label>Логин *</label><input type="text" name="username" required placeholder="ivan"></div>
+          </div>
+          <div class="form-row cols-2" style="margin-bottom:10px;">
+            <div class="form-group"><label>Пароль *</label><input type="password" name="password" required></div>
+            <div class="form-group"><label>Роль</label>
+              <select name="role">
+                <option value="worker">Сотрудник (только просмотр)</option>
+                <option value="manager">Менеджер (добавление, продажи)</option>
+                <option value="admin">Администратор (полный доступ)</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">Создать</button>
+        </form>
+        <div style="margin-top:14px;padding:12px;background:#f8f7f4;border-radius:8px;font-size:11px;color:#5a5a5a;">
+          <b>Роли:</b><br>
+          🔵 <b>Сотрудник</b> — только Общий товар<br>
+          🟢 <b>Менеджер</b> — импорт, отчёты, финансы<br>
+          🔴 <b>Администратор</b> — полный доступ + справочники
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BACKUP -->
+  <div class="card">
+    <div class="card-header"><h3>Импорт резервной копии (JSON)</h3></div>
+    <div class="card-body">
+      <p style="font-size:13px;color:#5a5a5a;margin-bottom:14px;">Восстановление из файла бэкапа. Существующие IMEI не будут перезаписаны.</p>
+      <form method="POST" action="{{ url_for('backup_import') }}" enctype="multipart/form-data" style="display:flex;gap:10px;align-items:center;">
+        <input type="file" name="file" accept=".json" style="flex:1;">
+        <button type="submit" class="btn btn-outline">Загрузить JSON</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<!-- EDIT MODEL MODAL -->
+<div class="modal-overlay" id="editModelModal">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header">
+      <h2>Редактировать модель</h2>
+      <button class="modal-close" onclick="document.getElementById('editModelModal').classList.remove('open')">×</button>
+    </div>
+    <form method="POST" id="editModelForm">
+      <div class="form-group" style="margin-bottom:16px;">
+        <label>Название</label>
+        <input type="text" name="name" id="editModelName" required>
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('editModelModal').classList.remove('open')">Отмена</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editModel(id, name) {
+  document.getElementById('editModelName').value = name;
+  document.getElementById('editModelForm').action = '/references/model/edit/' + id;
+  document.getElementById('editModelModal').classList.add('open');
+}
+</script>
+{% endblock %}
