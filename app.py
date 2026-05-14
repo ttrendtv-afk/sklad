@@ -766,6 +766,38 @@ def backup_import():
         flash(f'Ошибка: {e}', 'error')
     return redirect(url_for('references'))
 
+# ─── ADMIN UTILS ──────────────────────────────────────────────────────────────
+
+@app.route('/admin/reset-models')
+@role_required('admin')
+def reset_models():
+    iphone_models = [
+        'iPhone 13 128GB', 'iPhone 13 256GB', 'iPhone 13 512GB',
+        'iPhone 13 Mini 128GB', 'iPhone 13 Mini 256GB',
+        'iPhone 13 Pro 128GB', 'iPhone 13 Pro 256GB', 'iPhone 13 Pro 512GB',
+        'iPhone 13 Pro Max 128GB', 'iPhone 13 Pro Max 256GB', 'iPhone 13 Pro Max 512GB',
+        'iPhone 14 128GB', 'iPhone 14 256GB', 'iPhone 14 512GB',
+        'iPhone 14 Plus 128GB', 'iPhone 14 Plus 256GB',
+        'iPhone 14 Pro 128GB', 'iPhone 14 Pro 256GB', 'iPhone 14 Pro 512GB', 'iPhone 14 Pro 1TB',
+        'iPhone 14 Pro Max 128GB', 'iPhone 14 Pro Max 256GB', 'iPhone 14 Pro Max 512GB', 'iPhone 14 Pro Max 1TB',
+        'iPhone 15 128GB', 'iPhone 15 256GB', 'iPhone 15 512GB',
+        'iPhone 15 Plus 128GB', 'iPhone 15 Plus 256GB',
+        'iPhone 15 Pro 128GB', 'iPhone 15 Pro 256GB', 'iPhone 15 Pro 512GB', 'iPhone 15 Pro 1TB',
+        'iPhone 15 Pro Max 256GB', 'iPhone 15 Pro Max 512GB', 'iPhone 15 Pro Max 1TB',
+        'iPhone 16 128GB', 'iPhone 16 256GB', 'iPhone 16 512GB',
+        'iPhone 16 Plus 128GB', 'iPhone 16 Plus 256GB', 'iPhone 16 Plus 512GB',
+        'iPhone 16 Pro 128GB', 'iPhone 16 Pro 256GB', 'iPhone 16 Pro 512GB', 'iPhone 16 Pro 1TB',
+        'iPhone 16 Pro Max 256GB', 'iPhone 16 Pro Max 512GB', 'iPhone 16 Pro Max 1TB',
+    ]
+    added = 0
+    for name in iphone_models:
+        if not PhoneModel.query.filter_by(name=name).first():
+            db.session.add(PhoneModel(name=name))
+            added += 1
+    db.session.commit()
+    flash(f'Добавлено {added} новых моделей', 'success')
+    return redirect(url_for('references'))
+
 # ─── INIT ─────────────────────────────────────────────────────────────────────
 
 def init_db():
