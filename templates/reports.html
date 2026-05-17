@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% block title %}Отчёты продаж — WMS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h2>Отчёты продаж</h2>
+  <div class="topbar-right">
+    <button class="btn btn-primary btn-sm" onclick="exportReport()">Экспорт Excel</button>
+  </div>
+</div>
+<div class="content">
+
+  <!-- ИТОГИ -->
+  <div class="stats-row">
+    <div class="stat-box"><div class="lbl">Продано шт</div><div class="val blue">{{ count_sold }}</div></div>
+    <div class="stat-box"><div class="lbl">Возвратов шт</div><div class="val orange">{{ count_returns }}</div></div>
+    <div class="stat-box"><div class="lbl">Выручка ₾</div><div class="val green">{{ total_revenue_gel }}</div></div>
+    <div class="stat-box"><div class="lbl">Прибыль ₾</div><div class="val {{ 'green' if total_profit_gel >= 0 else 'orange' }}">{{ total_profit_gel }}</div></div>
+    <div class="stat-box"><div class="lbl">Возвраты ₾</div><div class="val orange">{{ total_returns_gel }}</div></div>
+    <div class="stat-box"><div class="lbl">Итог чистый ₾</div><div class="val {{ 'green' if net_gel >= 0 else 'orange' }}">{{ net_gel }}</div></div>
+    <div class="stat-box"><div class="lbl">Итог в USD</div><div class="val blue">{{ net_usd }} $</div></div>
+  </div>
+
+  <!-- КУРС GEL -->
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-body">
+      <form method="POST" action="/update-rate" style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;">
+        <div class="form-group">
+          <label>Курс GEL (₾ за $1)</label>
+          <input type="number" name="gel_rate" value="{{ gel_rate }}" step="0.01" style="width:110px;">
+        </div>
+        <button type="submit" class="btn btn-outline btn-sm" style="margin-bottom:1px;">Обновить курс</button>
+        <span style="font-size:11px;color:#9a9a9a;align-self:center;">Итог в USD считается по этому курсу</span>
+      </form>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <a href="{{ url_for('reports', tab='sales', store=sel_store, model=sel_model, state=sel_state, imei=sel_imei, date_from=date_from, date_to=date_to) }}"
+       class="tab-btn {% if tab=='sales' %}active{% endif %}">Продажи</a>
+    <a href="{{ url_for('reports', tab='returns', store=sel_store, model=sel_model, state=sel_state, imei=sel_imei, date_from=date_from, date_to=date_to) }}"
+       class="tab-btn {% if tab=='returns' %}active{% endif %}">Возвраты</a>
+  </div>
+
+  <div class="filter-bar">
+    <input type="text" id="fImei" placeholder="Поиск IMEI" value="{{ sel_imei }}">
+    <select id="fStore">
+      <option value="">Все магазины</option>
+      {% for s in stores %}<option value="{{ s.id }}" {% if sel_store==s.id|string %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+    </select>
+    <select id="fModel">
+      <option value="">Все модели</option>
+      {% for m in models %}<option value="{{ m.id }}" {% if sel_model==m.id|string %}selected{% endif %}>{{ m.name }}</option>{% endfor %}
+    </select>
+    <select id="fState">
+      <option value="">Состояние: все</option>
+      {% for st in states %}<option {% if sel_state==st %}selected{% endif %}>{{ st }}</option>{% endfor %}
+    </select>
+    <input type="date" id="fDateFrom" value="{{ date_from }}">
+    <input type="date" id="fDateTo" value="{{ date_to }}">
+    <div class="filter-actions">
+      <button class="btn btn-primary btn-sm" onclick="applyFilter()">Применить</button>
+      <button class="btn btn-outline btn-sm" onclick="resetFilter()">Сброс</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Модель</th><th>IMEI</th><th>Магазин</th><th>Состояние</th>
+            {% if tab=='sales' %}
+            <th>Дата приёма</th><th>Дата продажи</th><th>Цена ₾</th><th>Прибыль ₾</th>
+            {% else %}
+            <th>Дата продажи</th><th>Дата возврата</th><th>Цена ₾</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+        {% if phones %}
+        {% for p in phones %}
+        {% set eff = p.sold_price_gel if p.sold_price_gel is not none else p.price_gel %}
+        {% set profit = (eff or 0) - (p.cost_usd or 0) * (p.gel_rate or gel_rate) %}
+        <tr>
+          <td>{{ p.model.name }}</td>
+          <td><a href="#" class="imei-link" onclick="openModal('{{ p.imei }}');return false;">{{ p.imei }}</a></td>
+          <td>{{ p.store.name }}</td>
+          <td>
+            {% if p.state=='НОВАЯ' %}<span class="badge badge-new">НОВАЯ</span>
+            {% elif p.state=='REF.' %}<span class="badge badge-ref">REF.</span>
+            {% else %}<span class="badge badge-bu">{{ p.state }}</span>{% endif %}
+          </td>
+          {% if tab=='sales' %}
+          <td style="color:#9a9a9a;">{{ p.date_in }}</td>
+          <td style="color:#9a9a9a;">{{ p.date_sold }}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;">{{ "%.2f"|format(eff or 0) }}</td>
+          <td class="{{ 'profit-pos' if profit >= 0 else 'profit-neg' }}" style="font-family:'IBM Plex Mono',monospace;">{{ "%.2f"|format(profit) }}</td>
+          {% else %}
+          <td style="color:#9a9a9a;">{{ p.date_sold }}</td>
+          <td style="color:#9a9a9a;">{{ p.date_returned }}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;">{{ "%.2f"|format(eff or 0) }}</td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr><td colspan="8" style="text-align:center;padding:30px;color:#9a9a9a;">Нет данных</td></tr>
+        {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const currentTab = '{{ tab }}';
+function applyFilter() {
+  const p = new URLSearchParams({
+    tab: currentTab,
+    imei: document.getElementById('fImei').value,
+    store: document.getElementById('fStore').value,
+    model: document.getElementById('fModel').value,
+    state: document.getElementById('fState').value,
+    date_from: document.getElementById('fDateFrom').value,
+    date_to: document.getElementById('fDateTo').value,
+  });
+  window.location = '/reports?' + p;
+}
+function resetFilter() { window.location = '/reports?tab=' + currentTab; }
+function exportReport() {
+  const p = new URLSearchParams({
+    tab: currentTab,
+    imei: document.getElementById('fImei').value,
+    store: document.getElementById('fStore').value,
+    model: document.getElementById('fModel').value,
+    state: document.getElementById('fState').value,
+    date_from: document.getElementById('fDateFrom').value,
+    date_to: document.getElementById('fDateTo').value,
+  });
+  window.location = '/reports/export?' + p;
+}
+</script>
+{% endblock %}
