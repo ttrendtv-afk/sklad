@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% block title %}Добавить товар — WMS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h2>Добавить товар</h2>
+  <div class="topbar-right">
+    <a href="{{ url_for('import_template') }}" class="btn btn-outline btn-sm">Скачать шаблон CSV</a>
+  </div>
+</div>
+
+<div class="content">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
+
+    <!-- СКАНЕР -->
+    <div class="card">
+      <div class="card-header"><h3>Сканер IMEI</h3></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:#5a5a5a;margin-bottom:14px;">
+          Поставьте курсор в поле и сканируйте штрихкоды. Каждый IMEI добавляется автоматически.
+        </p>
+        <div class="form-group" style="margin-bottom:12px;">
+          <label>Сканировать IMEI</label>
+          <input type="text" id="scanInput" placeholder="Наведите сканер сюда..."
+                 style="font-family:'IBM Plex Mono',monospace;font-size:15px;border-color:#86efac;"
+                 onkeydown="handleScan(event)">
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <label style="margin:0;">Список IMEI (<span id="imeiCount">0</span> шт)</label>
+          <button class="btn btn-outline btn-sm" onclick="clearList()" style="color:#dc2626;">Очистить</button>
+        </div>
+        <textarea id="imeiList" rows="8"
+                  style="font-family:'IBM Plex Mono',monospace;font-size:12px;resize:vertical;width:100%;"
+                  placeholder="Сюда появятся IMEI после сканирования&#10;Или вставьте вручную (каждый с новой строки)"
+                  oninput="updateCount()"></textarea>
+        <div style="margin-top:8px;font-size:11px;color:#9a9a9a;">
+          Можно вставить список вручную (Ctrl+V) — каждый с новой строки.
+        </div>
+      </div>
+    </div>
+
+    <!-- ПАРАМЕТРЫ -->
+    <div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-header"><h3>Параметры партии</h3></div>
+        <div class="card-body">
+          <div class="form-row cols-2" style="margin-bottom:12px;">
+            <div class="form-group">
+              <label>Модель *</label>
+              <select id="pModel" required>
+                <option value="">Выберите модель</option>
+                {% for m in models %}<option value="{{ m.id }}">{{ m.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Магазин *</label>
+              <select id="pStore" required>
+                {% for s in stores %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="form-row cols-3" style="margin-bottom:12px;">
+            <div class="form-group">
+              <label>Себестоимость $</label>
+              <input type="number" id="pCost" step="0.01" placeholder="0" oninput="calcPrice()">
+            </div>
+            <div class="form-group">
+              <label>Наценка %</label>
+              <input type="number" id="pMarkup" value="20" step="0.1" oninput="calcPrice()">
+            </div>
+            <div class="form-group">
+              <label>Курс GEL</label>
+              <input type="number" id="pRate" value="{{ gel_rate }}" step="0.01" oninput="calcPrice()">
+            </div>
+          </div>
+          <div class="form-row cols-2" style="margin-bottom:12px;">
+            <div class="form-group">
+              <label>Цена ₾ (авто)</label>
+              <input type="number" id="pPrice" step="0.01" style="border-color:#86efac;">
+            </div>
+            <div class="form-group">
+              <label>Состояние</label>
+              <select id="pState">
+                {% for st in states %}<option>{{ st }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:16px;">
+            <label>Дата приёма</label>
+            <input type="date" id="pDate" value="{{ today }}">
+          </div>
+          <button type="button" class="btn btn-primary" onclick="submitScan()" style="width:100%;justify-content:center;">
+            Импортировать <span id="btnCount">0</span> телефонов
+          </button>
+        </div>
+      </div>
+
+      <!-- ЗАГРУЗКА CSV -->
+      <div class="card">
+        <div class="card-header"><h3>Загрузить CSV файл</h3></div>
+        <div class="card-body">
+          <p style="font-size:12px;color:#9a9a9a;margin-bottom:12px;">
+            Скачайте шаблон, заполните IMEI в Excel (по одному в строке), сохраните как CSV и загрузите.
+          </p>
+          <input type="file" id="csvFile" accept=".csv,.txt" style="margin-bottom:12px;width:100%;">
+          <button type="button" class="btn btn-outline" onclick="importFromFile()" style="width:100%;justify-content:center;">
+            Загрузить из файла
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Скрытая форма для отправки -->
+<form id="importForm" method="POST" action="{{ url_for('import_phones') }}" enctype="multipart/form-data" style="display:none;">
+  <input type="hidden" name="model_id" id="hModel">
+  <input type="hidden" name="store_id" id="hStore">
+  <input type="hidden" name="state" id="hState">
+  <input type="hidden" name="cost_usd" id="hCost">
+  <input type="hidden" name="markup_pct" id="hMarkup">
+  <input type="hidden" name="gel_rate" id="hRate">
+  <input type="hidden" name="price_gel" id="hPrice">
+  <input type="hidden" name="date_in" id="hDate">
+  <input type="file" name="file" id="hFile">
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function handleScan(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const val = e.target.value.trim().replace(/\D/g, '');
+    if (val.length >= 10) {
+      const list = document.getElementById('imeiList');
+      const existing = list.value.split('\n').map(x => x.trim()).filter(Boolean);
+      if (!existing.includes(val)) {
+        list.value = (list.value ? list.value.trim() + '\n' : '') + val;
+        updateCount();
+      }
+    }
+    e.target.value = '';
+  }
+}
+
+function updateCount() {
+  const n = getImeiList().length;
+  document.getElementById('imeiCount').textContent = n;
+  document.getElementById('btnCount').textContent = n;
+}
+
+function getImeiList() {
+  return document.getElementById('imeiList').value
+    .split(/[\n,;\t]+/)
+    .map(x => x.trim().replace(/\D/g, ''))
+    .filter(x => x.length >= 10);
+}
+
+function clearList() {
+  document.getElementById('imeiList').value = '';
+  updateCount();
+}
+
+function calcPrice() {
+  const cost = parseFloat(document.getElementById('pCost').value) || 0;
+  const markup = parseFloat(document.getElementById('pMarkup').value) || 0;
+  const rate = parseFloat(document.getElementById('pRate').value) || 0;
+  if (cost && rate) document.getElementById('pPrice').value = (cost*(1+markup/100)*rate).toFixed(2);
+}
+
+function fillHidden() {
+  document.getElementById('hModel').value = document.getElementById('pModel').value;
+  document.getElementById('hStore').value = document.getElementById('pStore').value;
+  document.getElementById('hState').value = document.getElementById('pState').value;
+  document.getElementById('hCost').value = document.getElementById('pCost').value || 0;
+  document.getElementById('hMarkup').value = document.getElementById('pMarkup').value || 20;
+  document.getElementById('hRate').value = document.getElementById('pRate').value || 2.7;
+  document.getElementById('hPrice').value = document.getElementById('pPrice').value || 0;
+  document.getElementById('hDate').value = document.getElementById('pDate').value;
+}
+
+function submitScan() {
+  const imeis = getImeiList();
+  if (!imeis.length) { alert('Список IMEI пуст!'); return; }
+  if (!document.getElementById('pModel').value) { alert('Выберите модель!'); return; }
+
+  fillHidden();
+  const csv = imeis.join('\n');
+  const blob = new Blob([csv], {type: 'text/plain'});
+  const file = new File([blob], 'scan.csv', {type: 'text/plain'});
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  document.getElementById('hFile').files = dt.files;
+  document.getElementById('importForm').submit();
+}
+
+function importFromFile() {
+  const fi = document.getElementById('csvFile');
+  if (!fi.files.length) { alert('Выберите файл'); return; }
+  if (!document.getElementById('pModel').value) { alert('Выберите модель!'); return; }
+
+  fillHidden();
+  const dt = new DataTransfer();
+  dt.items.add(fi.files[0]);
+  document.getElementById('hFile').files = dt.files;
+  document.getElementById('importForm').submit();
+}
+</script>
+{% endblock %}
