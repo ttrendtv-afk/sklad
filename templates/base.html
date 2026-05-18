@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}WMS{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f4f0;--white:#fff;--dark:#1a1a1a;--mid:#5a5a5a;--light:#9a9a9a;
+  --border:#e0ddd6;--accent:#2563eb;--accent-h:#1d4ed8;
+  --green:#16a34a;--red:#dc2626;--orange:#ea580c;--yellow:#ca8a04;
+  --sidebar-w:220px;--font:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--dark);font-family:var(--font);min-height:100vh;display:flex;}
+.sidebar{width:var(--sidebar-w);background:var(--dark);min-height:100vh;display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100;}
+.sidebar-brand{padding:18px 18px 14px;border-bottom:1px solid #333;}
+.sidebar-brand h1{font-family:var(--mono);font-size:13px;color:#fff;letter-spacing:2px;}
+.sidebar-brand h1 span{color:#60a5fa;}
+.sidebar-ver{font-size:10px;color:#555;margin-top:2px;}
+nav{padding:10px 0;flex:1;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:10px 18px;color:#888;font-size:13px;font-weight:500;text-decoration:none;transition:.15s;border-left:3px solid transparent;}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,.05);}
+.nav-item.active{color:#fff;border-left-color:#60a5fa;background:rgba(96,165,250,.08);}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;opacity:.7;}
+.sidebar-user{padding:12px 18px;border-top:1px solid #333;}
+.sidebar-user .uname{font-size:12px;color:#aaa;font-weight:600;}
+.sidebar-user .urole{font-size:10px;color:#555;margin-top:2px;}
+.sidebar-user a{font-size:11px;color:#555;text-decoration:none;display:block;margin-top:6px;}
+.sidebar-user a:hover{color:#aaa;}
+.main{margin-left:var(--sidebar-w);flex:1;}
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.topbar h2{font-size:16px;font-weight:700;}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.content{padding:20px 28px;}
+.flash-wrap{padding:12px 28px 0;}
+.flash{padding:10px 14px;border-radius:7px;font-size:13px;margin-bottom:8px;}
+.flash.success{background:#f0fdf4;border:1px solid #86efac;color:var(--green);}
+.flash.error{background:#fef2f2;border:1px solid #fca5a5;color:var(--red);}
+.card{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.card-header{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-header h3{font-size:12px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;}
+.card-body{padding:18px;}
+label{font-size:11px;font-weight:600;color:var(--mid);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--dark);font-family:var(--font);font-size:13px;padding:8px 11px;outline:none;transition:.15s;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);background:#fff;}
+.form-row{display:grid;gap:12px;}
+.cols-2{grid-template-columns:1fr 1fr;}
+.cols-3{grid-template-columns:1fr 1fr 1fr;}
+.cols-4{grid-template-columns:repeat(4,1fr);}
+.form-group{display:flex;flex-direction:column;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:none;border-radius:7px;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;transition:.15s;text-decoration:none;white-space:nowrap;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent-h);}
+.btn-success{background:var(--green);color:#fff;}
+.btn-success:hover{background:#15803d;}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-danger:hover{background:#b91c1c;}
+.btn-outline{background:#fff;color:var(--dark);border:1px solid var(--border);}
+.btn-outline:hover{background:var(--bg);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead{background:var(--bg);}
+th{padding:9px 13px;text-align:left;font-size:10px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:9px 13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#fafaf8;}
+.imei-link{font-family:var(--mono);font-size:12px;color:var(--accent);cursor:pointer;text-decoration:none;}
+.imei-link:hover{text-decoration:underline;}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;}
+.badge-new{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;}
+.badge-ref{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;}
+.badge-bu{background:#f5f5f4;color:#57534e;border:1px solid #d6d3d1;}
+.badge-sold{background:#fef2f2;color:var(--red);}
+.filter-bar{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;}
+.filter-bar input,.filter-bar select{width:auto;min-width:140px;font-size:12px;padding:6px 10px;}
+.filter-actions{margin-left:auto;display:flex;gap:6px;}
+.stats-row{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.stat-box{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex:1;min-width:130px;}
+.stat-box .lbl{font-size:10px;color:var(--light);text-transform:uppercase;letter-spacing:.5px;}
+.stat-box .val{font-family:var(--mono);font-size:20px;font-weight:600;margin-top:3px;}
+.blue{color:var(--accent);}.green{color:var(--green);}.orange{color:var(--orange);}
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:14px;}
+.tab-btn{padding:9px 16px;border:none;background:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:500;color:var(--mid);border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s;text-decoration:none;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-btn:hover:not(.active){color:var(--dark);}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:12px;padding:26px;width:600px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.modal-header h2{font-size:14px;font-weight:700;}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--light);line-height:1;}
+.modal-actions{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;}
+.profit-pos{color:var(--green);font-weight:600;}
+.profit-neg{color:var(--red);font-weight:600;}
+.group-row td{background:#f8f7f4;font-weight:600;font-size:12px;cursor:pointer;}
+.group-row:hover td{background:#f0efe9;}
+.detail-row{display:none;}
+.detail-row.visible{display:table-row;}
+.hamburger{display:none;position:fixed;top:10px;left:10px;z-index:200;background:var(--dark);border:none;border-radius:8px;padding:8px 10px;cursor:pointer;flex-direction:column;gap:5px;}
+.hamburger span{display:block;width:22px;height:2px;background:#fff;border-radius:2px;transition:.3s;}
+.hamburger.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px);}
+.hamburger.open span:nth-child(2){opacity:0;}
+.hamburger.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px);}
+.mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:149;}
+.mob-overlay.open{display:block;}
+@media(max-width:768px){
+  .hamburger{display:flex;}
+  .sidebar{transform:translateX(-100%);transition:.25s;z-index:150;}
+  .sidebar.open{transform:translateX(0);}
+  .main{margin-left:0;}
+  .topbar{padding:10px 12px 10px 52px;}
+  .content{padding:14px 12px;}
+  .flash-wrap{padding:8px 12px 0;}
+  .filter-bar{flex-direction:column;align-items:stretch;}
+  .filter-bar input,.filter-bar select{width:100%!important;min-width:unset;}
+  .filter-actions{flex-direction:row;margin-left:0;}
+  .stats-row{flex-wrap:wrap;}
+  .stat-box{min-width:calc(50% - 6px);}
+  th,td{padding:7px 8px;font-size:11px;}
+  .modal{padding:18px;width:96vw!important;}
+  .form-row.cols-2,.form-row.cols-3,.form-row.cols-4{grid-template-columns:1fr;}
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+}
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+<button class="hamburger" id="hamburger" onclick="toggleMenu()" aria-label="Меню">
+  <span></span><span></span><span></span>
+</button>
+<div class="mob-overlay" id="mobOverlay" onclick="closeMenu()"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <h1>WMS <span>Склад</span></h1>
+    <div class="sidebar-ver">v3.0</div>
+  </div>
+  <nav>
+    <a href="{{ url_for('catalog') }}" class="nav-item {% if request.endpoint=='catalog' %}active{% endif %}">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>Телефоны
+    </a>
+    {% if session.role in ('admin','manager','editor') %}
+    <a href="{{ url_for('import_phones') }}" class="nav-item {% if request.endpoint=='import_phones' %}active{% endif %}">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>Добавить товар
+    </a>
+    {% endif %}
+    {% if session.role in ('admin','manager') %}
+    <a href="{{ url_for('finance') }}" class="nav-item {% if request.endpoint=='finance' %}active{% endif %}">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>Общий товар
+    </a>
+    <a href="{{ url_for('reports') }}" class="nav-item {% if request.endpoint=='reports' %}active{% endif %}">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>Отчёты продаж
+    </a>
+    <a href="{{ url_for('changelog') }}" class="nav-item {% if request.endpoint=='changelog' %}active{% endif %}">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>История
+    </a>
+    {% endif %}
+    {% if session.role == 'admin' %}
+    <a href="{{ url_for('references') }}" class="nav-item {% if request.endpoint=='references' %}active{% endif %}">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Справочники
+    </a>
+    {% endif %}
+  </nav>
+  <div class="sidebar-user">
+    <div class="uname">{{ session.name }}</div>
+    <div class="urole">
+      {% if session.role=='admin' %}Администратор
+      {% elif session.role=='manager' %}Менеджер
+      {% elif session.role=='editor' %}Редактор
+      {% else %}Сотрудник{% endif %}
+    </div>
+    <a href="{{ url_for('change_password') }}">Сменить пароль</a>
+    <a href="{{ url_for('logout') }}">Выйти</a>
+  </div>
+</aside>
+
+<div class="main">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-wrap">
+  {% for cat, msg in messages %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</div>
+
+<!-- PHONE CARD MODAL -->
+<div class="modal-overlay" id="phoneModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Карточка товара</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div id="modalBody">
+      <div class="form-row cols-2" style="margin-bottom:12px;">
+        <div class="form-group"><label>Модель</label><input id="mModel" readonly style="background:#f5f4f0;"></div>
+        <div class="form-group"><label>Магазин</label><select name="store_id" id="mStore"></select></div>
+      </div>
+      <div class="form-row cols-2" style="margin-bottom:12px;">
+        <div class="form-group"><label>Состояние</label>
+          <select id="mState"></select></div>
+        <div class="form-group"><label>Себестоимость $</label>
+          <input type="number" id="mCost" step="0.01" oninput="calcModalPrice()"></div>
+      </div>
+      <div class="form-row cols-3" style="margin-bottom:12px;">
+        <div class="form-group"><label>Наценка %</label>
+          <input type="number" id="mMarkup" step="0.1" oninput="calcModalPrice()"></div>
+        <div class="form-group"><label>Курс GEL</label>
+          <input type="number" id="mRate" step="0.01" oninput="calcModalPrice()"></div>
+        <div class="form-group"><label>Цена ₾ (прайс)</label>
+          <input type="number" id="mPrice" step="0.01" style="border-color:#86efac;"></div>
+      </div>
+      <div class="form-row cols-2" style="margin-bottom:12px;">
+        <div class="form-group"><label>Цена продажи ₾ <span style="color:#9a9a9a;font-weight:400;">(факт)</span></label>
+          <input type="number" id="mSoldPrice" step="0.01" placeholder="если отличается от прайса" style="border-color:#fde047;"></div>
+        <div class="form-group"><label>Покупатель</label>
+          <input type="text" id="mBuyer" placeholder="Имя / контакт"></div>
+      </div>
+      <div class="form-row cols-3" style="margin-bottom:12px;">
+        <div class="form-group"><label>Дата приёма</label><input type="date" id="mDateIn"></div>
+        <div class="form-group"><label>Дата продажи</label><input type="date" id="mDateSold"></div>
+        <div class="form-group"><label>Дата возврата</label><input type="date" id="mDateRet"></div>
+      </div>
+      <div class="form-group"><label>Заметки</label>
+        <textarea id="mNotes" rows="2" style="resize:vertical;"></textarea></div>
+      <div class="modal-actions" id="modalActions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODEL PHONES MODAL -->
+<div class="modal-overlay" id="modelModal">
+  <div class="modal" style="width:780px;">
+    <div class="modal-header">
+      <h2 id="modelModalTitle">Локации</h2>
+      <button class="modal-close" onclick="closeModelModal()">×</button>
+    </div>
+    <div class="filter-bar" style="margin-bottom:12px;">
+      <input type="text" id="mmImei" placeholder="Поиск IMEI" oninput="filterModelPhones()">
+      <select id="mmStore" onchange="filterModelPhones()"><option value="">Все магазины</option></select>
+      <select id="mmState" onchange="filterModelPhones()">
+        <option value="">Все состояния</option>
+        <option>НОВАЯ</option><option>REF.</option><option>Б/У</option>
+      </select>
+      <div class="filter-actions">
+        <button class="btn btn-primary btn-sm" onclick="exportModelPhones()">Экспорт CSV</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table id="modelPhonesTable">
+        <thead><tr><th>IMEI</th><th>Магазин</th><th>Состояние</th><th>Цена ₾</th><th>Дата приёма</th></tr></thead>
+        <tbody id="modelPhonesBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const USER_ROLE = '{{ session.role }}';
+let currentImei = null;
+let currentModelId = null;
+let currentModelPhones = [];
+let allStores = [];
+
+function openModal(imei) {
+  currentImei = imei;
+  fetch('/api/phone/' + imei)
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('modalTitle').textContent = 'Карточка — IMEI ' + d.imei;
+      document.getElementById('mModel').value = d.model;
+      document.getElementById('mCost').value = d.cost_usd;
+      document.getElementById('mMarkup').value = d.markup_pct;
+      document.getElementById('mRate').value = d.gel_rate;
+      document.getElementById('mPrice').value = d.price_gel;
+      document.getElementById('mSoldPrice').value = d.sold_price_gel || '';
+      document.getElementById('mBuyer').value = d.buyer || '';
+      document.getElementById('mDateIn').value = d.date_in;
+      document.getElementById('mDateSold').value = d.date_sold;
+      document.getElementById('mDateSold').dataset.original = d.date_sold;
+      document.getElementById('mDateRet').value = d.date_returned;
+      document.getElementById('mNotes').value = d.notes;
+      const stateEl = document.getElementById('mState');
+      stateEl.innerHTML = d.states.map(s => `<option${s===d.state?' selected':''}>${s}</option>`).join('');
+
+      const storeEl = document.getElementById('mStore');
+      storeEl.innerHTML = d.stores.map(s => `<option value="${s.id}"${s.id==d.store_id?' selected':''}>${s.name}</option>`).join('');
+
+      const canEdit = USER_ROLE === 'admin' || USER_ROLE === 'manager';
+      const canDelete = USER_ROLE === 'admin';
+
+      const actionsHtml = canEdit ? `
+        <button type="button" class="btn btn-success" onclick="saveModal()">Сохранить</button>
+        ${canDelete ? '<button type="button" class="btn btn-danger" onclick="deleteModal()">Удалить товар</button>' : ''}
+        <button type="button" class="btn btn-outline" onclick="closeModal()">Закрыть</button>
+      ` : `<button type="button" class="btn btn-outline" onclick="closeModal()">Закрыть</button>`;
+      document.getElementById('modalActions').innerHTML = actionsHtml;
+
+      document.getElementById('phoneModal').classList.add('open');
+    });
+}
+
+function calcModalPrice() {
+  const cost = parseFloat(document.getElementById('mCost').value) || 0;
+  const markup = parseFloat(document.getElementById('mMarkup').value) || 0;
+  const rate = parseFloat(document.getElementById('mRate').value) || 0;
+  if (cost && rate) document.getElementById('mPrice').value = (cost*(1+markup/100)*rate).toFixed(2);
+}
+
+function saveModal() {
+  // If marking as sold - confirm
+  const dateSold = document.getElementById('mDateSold').value;
+  const currentStatus = document.getElementById('mDateSold').dataset.original || '';
+  if (dateSold && !currentStatus) {
+    const price = document.getElementById('mSoldPrice').value || document.getElementById('mPrice').value;
+    if (!confirm(`Подтвердите продажу телефона за ${price} ₾?`)) return;
+  }
+  const data = new FormData();
+  data.append('store_id', document.getElementById('mStore').value);
+  data.append('state', document.getElementById('mState').value);
+  data.append('cost_usd', document.getElementById('mCost').value);
+  data.append('markup_pct', document.getElementById('mMarkup').value);
+  data.append('gel_rate', document.getElementById('mRate').value);
+  data.append('price_gel', document.getElementById('mPrice').value);
+  data.append('sold_price_gel', document.getElementById('mSoldPrice').value);
+  data.append('buyer', document.getElementById('mBuyer').value);
+  data.append('date_in', document.getElementById('mDateIn').value);
+  data.append('date_sold', document.getElementById('mDateSold').value);
+  data.append('date_returned', document.getElementById('mDateRet').value);
+  data.append('notes', document.getElementById('mNotes').value);
+
+  fetch('/phone/' + currentImei + '/edit', {
+    method: 'POST', body: data,
+    headers: {'X-Requested-With': 'XMLHttpRequest'}
+  }).then(r => r.json()).then(d => {
+    if (d.ok) { closeModal(); location.reload(); }
+  });
+}
+
+function deleteModal() {
+  if (!confirm('Вы уверены что хотите удалить этот товар?')) return;
+  if (!confirm('Подтвердите ещё раз — удаление нельзя отменить!')) return;
+  fetch('/phone/' + currentImei + '/delete', {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-Confirm-Delete': 'yes'
+    },
+    body: new URLSearchParams({confirm_delete: 'yes'})
+  }).then(r => r.json()).then(d => {
+    if (d.ok) { closeModal(); location.reload(); }
+    else { alert('Ошибка удаления: ' + (d.error || '')); }
+  });
+}
+
+function closeModal() { document.getElementById('phoneModal').classList.remove('open'); }
+
+// MODEL PHONES MODAL
+function openModelModal(modelId, modelName) {
+  currentModelId = modelId;
+  document.getElementById('modelModalTitle').textContent = 'Локации: ' + modelName;
+  loadModelPhones();
+  document.getElementById('modelModal').classList.add('open');
+}
+
+function loadModelPhones() {
+  fetch('/api/model-phones/' + currentModelId)
+    .then(r => r.json())
+    .then(d => {
+      currentModelPhones = d.phones;
+      allStores = d.stores;
+      const storeEl = document.getElementById('mmStore');
+      const curStore = storeEl.value;
+      storeEl.innerHTML = '<option value="">Все магазины</option>' +
+        d.stores.map(s => `<option value="${s.id}"${s.id==curStore?' selected':''}>${s.name}</option>`).join('');
+      renderModelPhones(d.phones);
+    });
+}
+
+function filterModelPhones() {
+  const imei = document.getElementById('mmImei').value.toLowerCase();
+  const store = document.getElementById('mmStore').value;
+  const state = document.getElementById('mmState').value;
+  const filtered = currentModelPhones.filter(p =>
+    (!imei || p.imei.includes(imei)) &&
+    (!store || p.store_id == store) &&
+    (!state || p.state === state)
+  );
+  renderModelPhones(filtered);
+}
+
+function renderModelPhones(phones) {
+  const tbody = document.getElementById('modelPhonesBody');
+  if (!phones.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#9a9a9a;">Нет данных</td></tr>';
+    return;
+  }
+  tbody.innerHTML = phones.map(p => `
+    <tr>
+      <td><a href="#" class="imei-link" onclick="closeModelModal();openModal('${p.imei}');return false;">${p.imei}</a></td>
+      <td>${p.store}</td>
+      <td>${badgeHtml(p.state)}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;">${p.price_gel || '—'}</td>
+      <td style="color:#9a9a9a;">${p.date_in || '—'}</td>
+    </tr>
+  `).join('');
+}
+
+function exportModelPhones() {
+  const imei = document.getElementById('mmImei').value.toLowerCase();
+  const store = document.getElementById('mmStore').value;
+  const state = document.getElementById('mmState').value;
+  const filtered = currentModelPhones.filter(p =>
+    (!imei || p.imei.includes(imei)) &&
+    (!store || p.store_id == store) &&
+    (!state || p.state === state)
+  );
+  let csv = '\ufeffIMEI,Магазин,Состояние,Цена ₾,Дата приёма\n';
+  filtered.forEach(p => { csv += `${p.imei},${p.store},${p.state},${p.price_gel},${p.date_in}\n`; });
+  downloadCSV(csv, 'phones.csv');
+}
+
+function downloadCSV(content, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], {type:'text/csv;charset=utf-8'}));
+  a.download = filename; a.click();
+}
+
+function badgeHtml(state) {
+  const cls = state==='НОВАЯ'?'badge-new':state==='REF.'?'badge-ref':'badge-bu';
+  return `<span class="badge ${cls}">${state}</span>`;
+}
+
+function closeModelModal() { document.getElementById('modelModal').classList.remove('open'); }
+
+document.getElementById('phoneModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+document.getElementById('modelModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModelModal(); });
+</script>
+
+{% block scripts %}{% endblock %}
+<script>
+function toggleMenu() {
+  const s = document.getElementById('sidebar');
+  const h = document.getElementById('hamburger');
+  const o = document.getElementById('mobOverlay');
+  s.classList.toggle('open');
+  h.classList.toggle('open');
+  o.classList.toggle('open');
+}
+function closeMenu() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('hamburger').classList.remove('open');
+  document.getElementById('mobOverlay').classList.remove('open');
+}
+// Close menu when nav item clicked on mobile
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => {
+    if (window.innerWidth <= 768) closeMenu();
+  });
+});
+</script>
+</body>
+</html>
