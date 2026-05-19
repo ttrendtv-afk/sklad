@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}История изменений — WMS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h2>История изменений</h2>
+  <div class="topbar-right">
+    <button class="btn btn-primary btn-sm" onclick="applyFilter()">Применить</button>
+    <button class="btn btn-outline btn-sm" onclick="resetFilter()">Сброс</button>
+  </div>
+</div>
+<div class="content">
+
+  <div class="filter-bar">
+    <select id="fAction">
+      <option value="">Все действия</option>
+      <option value="sell">Продажа</option>
+      <option value="add">Добавление</option>
+      <option value="return">Возврат</option>
+      <option value="edit">Редактирование</option>
+      <option value="move">Перемещение</option>
+      <option value="delete">Удаление</option>
+    </select>
+    <select id="fUser">
+      <option value="">Все сотрудники</option>
+      {% for u in users %}
+      <option value="{{ u.id }}">{{ u.name or u.username }}</option>
+      {% endfor %}
+    </select>
+    <input type="text" id="fImei" placeholder="Поиск по IMEI">
+    <input type="text" id="fModel" placeholder="Поиск по модели">
+    <input type="date" id="fDateFrom" title="Дата от">
+    <input type="date" id="fDateTo" title="Дата до">
+  </div>
+
+  <div class="card">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Дата / Время</th>
+            <th>Сотрудник</th>
+            <th>Действие</th>
+            <th>IMEI</th>
+            <th>Модель</th>
+            <th>Детали</th>
+          </tr>
+        </thead>
+        <tbody id="logBody">
+          <tr><td colspan="6" style="text-align:center;padding:30px;color:#9a9a9a;">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="pagination" style="display:flex;gap:8px;margin-top:14px;justify-content:center;"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+
+function getFilters() {
+  return {
+    action: document.getElementById('fAction').value,
+    user_id: document.getElementById('fUser').value,
+    imei: document.getElementById('fImei').value,
+    model: document.getElementById('fModel').value,
+    date_from: document.getElementById('fDateFrom').value,
+    date_to: document.getElementById('fDateTo').value,
+    page: currentPage,
+  };
+}
+
+function loadLogs() {
+  const params = new URLSearchParams(getFilters());
+  fetch('/api/changelog?' + params)
+    .then(r => r.json())
+    .then(d => renderLogs(d));
+}
+
+function renderLogs(d) {
+  const ACTION_LABELS = {
+    'sell': ['Продажа', 'badge-ref'],
+    'add': ['Добавление', 'badge-new'],
+    'return': ['Возврат', 'badge-bu'],
+    'edit': ['Редактирование', 'badge-bu'],
+    'move': ['Перемещение', 'badge-new'],
+    'delete': ['Удаление', 'badge-del'],
+  };
+
+  if (!d.items.length) {
+    document.getElementById('logBody').innerHTML =
+      '<tr><td colspan="6" style="text-align:center;padding:30px;color:#9a9a9a;">Нет данных</td></tr>';
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  document.getElementById('logBody').innerHTML = d.items.map(log => {
+    const [label, cls] = ACTION_LABELS[log.action] || [log.action, 'badge-bu'];
+    return `<tr>
+      <td style="font-size:11px;color:#9a9a9a;white-space:nowrap;">${log.ts}</td>
+      <td style="font-size:12px;">${log.user || '—'}</td>
+      <td><span class="badge ${cls}">${label}</span></td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;">
+        ${log.imei ? `<a href="#" class="imei-link" onclick="openModal('${log.imei}');return false;">${log.imei}</a>` : '—'}
+      </td>
+      <td style="font-size:12px;">${log.model_name || '—'}</td>
+      <td style="font-size:12px;color:#5a5a5a;">${log.detail || '—'}</td>
+    </tr>`;
+  }).join('');
+
+  // Pagination
+  const pages = d.pages;
+  let pag = '';
+  if (pages > 1) {
+    if (d.page > 1) pag += `<button class="btn btn-outline btn-sm" onclick="goPage(${d.page-1})">← Назад</button>`;
+    pag += `<span style="padding:6px 12px;font-size:13px;color:#5a5a5a;">Стр. ${d.page} / ${pages} (всего ${d.total})</span>`;
+    if (d.page < pages) pag += `<button class="btn btn-outline btn-sm" onclick="goPage(${d.page+1})">Вперёд →</button>`;
+  } else {
+    pag = `<span style="font-size:12px;color:#9a9a9a;">Всего записей: ${d.total}</span>`;
+  }
+  document.getElementById('pagination').innerHTML = pag;
+}
+
+function goPage(p) { currentPage = p; loadLogs(); }
+function applyFilter() { currentPage = 1; loadLogs(); }
+function resetFilter() {
+  ['fAction','fUser','fImei','fModel','fDateFrom','fDateTo'].forEach(id => document.getElementById(id).value = '');
+  currentPage = 1;
+  loadLogs();
+}
+
+// Auto-filter on input
+['fAction','fUser','fDateFrom','fDateTo'].forEach(id =>
+  document.getElementById(id).addEventListener('change', applyFilter));
+['fImei','fModel'].forEach(id =>
+  document.getElementById(id).addEventListener('input', () => { currentPage=1; loadLogs(); }));
+
+loadLogs();
+</script>
+{% endblock %}
